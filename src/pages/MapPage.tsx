@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import Map, { ViewStateChangeEvent } from 'react-map-gl';
+import Map, { ViewStateChangeEvent, Marker, Popup } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useParking } from '@/context/ParkingContext';
 import { Card } from '@/components/ui/card';
