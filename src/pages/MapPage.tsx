@@ -1,6 +1,5 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import Map, { ViewStateChangeEvent, Marker, Popup } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useParking } from '@/context/ParkingContext';
 import { Card } from '@/components/ui/card';
@@ -12,25 +11,20 @@ import ParkingSpotMarker from '@/components/ParkingSpotMarker';
 import ParkingSpotCard from '@/components/ParkingSpotCard';
 import BookingForm from '@/components/BookingForm';
 
-// In a real app, you would get this from an environment variable
-// For demo purposes, we're using a placeholder
-const MAPBOX_TOKEN = 'your-mapbox-token-here'; // Users will need to provide this
+// Google Maps API Key
+const GOOGLE_MAPS_API_KEY = 'AIzaSyAy71IIAH6wSCX4heLACwywNPzueSpCvk0';
 
 const MapPage: React.FC = () => {
   const { parkingSpots, fetchParkingSpots, selectedSpot, selectSpot, isLoading } = useParking();
   const { toast } = useToast();
-  const [viewState, setViewState] = useState({
-    longitude: -122.4194,
-    latitude: 37.7749,
-    zoom: 13
-  });
-  const [isUsingMapbox, setIsUsingMapbox] = useState(false);
-  const [mapboxToken, setMapboxToken] = useState<string>('');
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isSpotDrawerOpen, setIsSpotDrawerOpen] = useState(false);
   const [isBookingDrawerOpen, setIsBookingDrawerOpen] = useState(false);
   
-  const mapRef = useRef(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const googleMapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   
   useEffect(() => {
     fetchParkingSpots();
@@ -42,9 +36,72 @@ const MapPage: React.FC = () => {
     }
   }, [selectedSpot]);
 
-  const handleViewStateChange = (event: ViewStateChangeEvent) => {
-    setViewState(event.viewState);
+  // Load Google Maps script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.defer = true;
+    script.async = true;
+    script.onload = initializeMap;
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
+  // Initialize Google Map
+  const initializeMap = () => {
+    if (!mapRef.current) return;
+
+    const mapOptions = {
+      center: { lat: 37.7749, lng: -122.4194 },
+      zoom: 13,
+      disableDefaultUI: true,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+    };
+
+    const map = new google.maps.Map(mapRef.current, mapOptions);
+    googleMapRef.current = map;
+    setMapLoaded(true);
   };
+
+  // Add parking spot markers to map
+  useEffect(() => {
+    if (!mapLoaded || !googleMapRef.current) return;
+    
+    // Clear existing markers
+    markersRef.current.forEach((marker) => {
+      marker.setMap(null);
+    });
+    markersRef.current.clear();
+    
+    // Add new markers
+    parkingSpots.forEach((spot) => {
+      const marker = new google.maps.Marker({
+        position: { lat: spot.latitude, lng: spot.longitude },
+        map: googleMapRef.current,
+        title: spot.title,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: selectedSpot?.id === spot.id ? '#4f46e5' : '#ef4444',
+          fillOpacity: 0.7,
+          strokeWeight: 2,
+          strokeColor: '#ffffff',
+        }
+      });
+      
+      marker.addListener('click', () => {
+        selectSpot(spot.id);
+      });
+      
+      markersRef.current.set(spot.id, marker);
+    });
+  }, [parkingSpots, selectedSpot, mapLoaded, selectSpot]);
 
   const handleMarkerClick = (spotId: string) => {
     selectSpot(spotId);
@@ -68,19 +125,6 @@ const MapPage: React.FC = () => {
   const handleBookingCancel = () => {
     setIsBookingDrawerOpen(false);
     setIsSpotDrawerOpen(true);
-  };
-
-  const enableMapbox = () => {
-    if (mapboxToken.trim() === '') {
-      toast({ 
-        title: "Missing Token", 
-        description: "Please enter your Mapbox token",
-        variant: "destructive"
-      });
-      return;
-    }
-    setIsUsingMapbox(true);
-    toast({ title: "Success", description: "Mapbox enabled!" });
   };
 
   const handleSearch = () => {
@@ -118,65 +162,45 @@ const MapPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Map placeholder or Mapbox map */}
-      {!isUsingMapbox ? (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 bg-gray-100 flex items-center justify-center flex-col p-4">
-            <Card className="w-full max-w-md p-4">
-              <h2 className="text-lg font-semibold mb-4">Enter your Mapbox token</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                To use the map functionality, you need to provide a Mapbox token. 
-                You can get one for free at <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-nexlot-600 hover:underline">Mapbox.com</a>.
-              </p>
-              <Input
-                type="text"
-                placeholder="pk.eyJ1IjoieW91..." 
-                value={mapboxToken}
-                onChange={(e) => setMapboxToken(e.target.value)}
-                className="mb-4"
-              />
-              <Button onClick={enableMapbox} className="w-full">Enable Map</Button>
-            </Card>
-            
-            {/* Mock parking spot list for non-map view */}
-            <div className="w-full max-w-md mt-4 space-y-4">
-              <h3 className="font-semibold text-lg">Available Parking Spots</h3>
-              {parkingSpots.map(spot => (
-                <ParkingSpotCard 
-                  key={spot.id}
-                  spot={spot}
-                  onViewDetails={handleViewDetails}
-                  onBook={() => {
-                    selectSpot(spot.id);
-                    startBooking();
-                  }}
-                />
-              ))}
+      {/* Google Map */}
+      <div className="flex-1 relative h-full">
+        <div ref={mapRef} className="w-full h-full"></div>
+
+        {!mapLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nexlot-600 mb-4 mx-auto"></div>
+              <p className="text-lg font-semibold">Loading map...</p>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 relative h-full">
-          <Map
-            ref={mapRef}
-            {...viewState}
-            onMove={handleViewStateChange}
-            style={{ width: '100%', height: '100%' }}
-            mapStyle="mapbox://styles/mapbox/streets-v11"
-            mapboxAccessToken={mapboxToken || MAPBOX_TOKEN}
-          >
-            {parkingSpots.map((spot) => (
-              <ParkingSpotMarker
+        )}
+      </div>
+      
+      {/* List view for small screens */}
+      <div className="md:hidden bg-white border-t border-gray-200 p-4">
+        <h3 className="font-semibold text-lg mb-4">Nearby Parking Spots</h3>
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="flex justify-center my-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nexlot-600"></div>
+            </div>
+          ) : parkingSpots.length === 0 ? (
+            <p className="text-center text-muted-foreground">No parking spots found nearby</p>
+          ) : (
+            parkingSpots.slice(0, 3).map(spot => (
+              <ParkingSpotCard 
                 key={spot.id}
                 spot={spot}
-                onClick={() => handleMarkerClick(spot.id)}
-                isSelected={selectedSpot?.id === spot.id}
                 onViewDetails={handleViewDetails}
+                onBook={() => {
+                  selectSpot(spot.id);
+                  startBooking();
+                }}
               />
-            ))}
-          </Map>
+            ))
+          )}
         </div>
-      )}
+      </div>
       
       {/* Spot details drawer */}
       <Drawer open={isSpotDrawerOpen} onOpenChange={setIsSpotDrawerOpen}>

@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
+import { Camera, Image } from 'lucide-react';
 
 interface ImageUploadProps {
   onImageUpload: (imageUrl: string) => void;
@@ -15,6 +16,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   className = ''
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -49,15 +52,57 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
+  const handleCameraClick = () => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
+  };
+
+  const handleGalleryClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <div className={`${className}`}>
-      <label className="block">
+      <div className="grid grid-cols-2 gap-2">
         <Button 
           variant="outline" 
-          className="w-full h-32 border-dashed flex flex-col gap-2 hover:bg-muted"
+          className="h-32 border-dashed flex flex-col gap-2 hover:bg-muted"
+          onClick={handleCameraClick}
           disabled={isUploading}
         >
           <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            onChange={handleFileChange}
+            disabled={isUploading}
+          />
+          {isUploading ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-nexlot-400"></div>
+              <span className="ml-2">Uploading...</span>
+            </div>
+          ) : (
+            <>
+              <Camera className="h-8 w-8" />
+              <span>Take Photo</span>
+            </>
+          )}
+        </Button>
+
+        <Button 
+          variant="outline" 
+          className="h-32 border-dashed flex flex-col gap-2 hover:bg-muted"
+          onClick={handleGalleryClick}
+          disabled={isUploading}
+        >
+          <input
+            ref={fileInputRef}
             type="file"
             className="sr-only"
             accept="image/*"
@@ -72,15 +117,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             </div>
           ) : (
             <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>Upload image</span>
+              <Image className="h-8 w-8" />
+              <span>Gallery</span>
               <span className="text-xs text-muted-foreground">JPG, PNG up to 10MB</span>
             </>
           )}
         </Button>
-      </label>
+      </div>
     </div>
   );
 };

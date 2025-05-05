@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -74,6 +73,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
     }
 
     try {
+      // Remove the safetyScore and safetyLabels from the type since they're added after creation
       const newSpot: Omit<ParkingSpot, 'id' | 'safetyScore' | 'safetyLabels' | 'createdAt'> = {
         ownerId: user.id,
         title: values.title,
@@ -88,8 +88,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
         availableTo: values.availableTo,
         amenities: values.amenities.split(',').map(item => item.trim()).filter(Boolean),
         isActive: true,
-        safetyScore: safetyAnalysis?.score || 0,
-        safetyLabels: safetyAnalysis?.labels || [],
       };
 
       await createParkingSpot(newSpot);
