@@ -166,7 +166,7 @@ const MapPage: React.FC = () => {
       </div>
 
       {/* Google Map */}
-      <div className="h-[60vh] sticky top-0 z-0 shadow-md">
+      <div className="h-[50vh] sticky top-0 z-0 shadow-md">
         <div ref={mapRef} className="w-full h-full"></div>
 
         {!mapLoaded && (
@@ -217,7 +217,7 @@ const MapPage: React.FC = () => {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-                  <p className="text-white font-semibold text-xl">${selectedSpot.hourlyRate.toFixed(2)}/hr</p>
+                  <p className="text-white font-semibold text-xl">₹{selectedSpot.hourlyRate.toFixed(2)}/hr</p>
                 </div>
               </div>
               
@@ -256,7 +256,7 @@ const MapPage: React.FC = () => {
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Daily Rate:</span>
-                    <span>{selectedSpot.dailyRate ? `$${selectedSpot.dailyRate.toFixed(2)}` : 'N/A'}</span>
+                    <span>{selectedSpot.dailyRate ? `₹${selectedSpot.dailyRate.toFixed(2)}` : 'N/A'}</span>
                   </div>
                 </div>
                 
