@@ -14,6 +14,9 @@ import BookingForm from '@/components/BookingForm';
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAy71IIAH6wSCX4heLACwywNPzueSpCvk0';
 
+// Bangalore coordinates
+const BANGALORE_CENTER = { lat: 12.9716, lng: 77.5946 };
+
 const MapPage: React.FC = () => {
   const { parkingSpots, fetchParkingSpots, selectedSpot, selectSpot, isLoading } = useParking();
   const { toast } = useToast();
@@ -55,7 +58,7 @@ const MapPage: React.FC = () => {
     if (!mapRef.current) return;
 
     const mapOptions = {
-      center: { lat: 37.7749, lng: -122.4194 },
+      center: BANGALORE_CENTER,
       zoom: 13,
       disableDefaultUI: true,
       zoomControl: true,
@@ -132,7 +135,7 @@ const MapPage: React.FC = () => {
     // In a real app, we would search for spots near the current location
     setTimeout(() => {
       setIsSearching(false);
-      toast({ title: "Spots Found", description: `Found ${parkingSpots.length} parking spots nearby` });
+      toast({ title: "Spots Found", description: `Found ${parkingSpots.length} parking spots nearby in Bangalore` });
     }, 1500);
   };
 
@@ -142,7 +145,7 @@ const MapPage: React.FC = () => {
       <div className="absolute top-4 left-0 right-0 z-10 px-4">
         <div className="flex items-center gap-2">
           <Input 
-            placeholder="Search for parking spots..." 
+            placeholder="Search for parking spots in Bangalore..." 
             className="bg-white shadow-md"
           />
           <Button 
@@ -163,7 +166,7 @@ const MapPage: React.FC = () => {
       </div>
 
       {/* Google Map */}
-      <div className="flex-1 relative h-full">
+      <div className="h-[60vh] sticky top-0 z-0 shadow-md">
         <div ref={mapRef} className="w-full h-full"></div>
 
         {!mapLoaded && (
@@ -176,9 +179,9 @@ const MapPage: React.FC = () => {
         )}
       </div>
       
-      {/* List view for small screens */}
-      <div className="md:hidden bg-white border-t border-gray-200 p-4">
-        <h3 className="font-semibold text-lg mb-4">Nearby Parking Spots</h3>
+      {/* List of parking spots */}
+      <div className="bg-white flex-1 px-4 pt-4 pb-20">
+        <h2 className="font-semibold text-xl mb-4">Parking Spots in Bangalore</h2>
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center my-4">
@@ -187,7 +190,7 @@ const MapPage: React.FC = () => {
           ) : parkingSpots.length === 0 ? (
             <p className="text-center text-muted-foreground">No parking spots found nearby</p>
           ) : (
-            parkingSpots.slice(0, 3).map(spot => (
+            parkingSpots.map(spot => (
               <ParkingSpotCard 
                 key={spot.id}
                 spot={spot}

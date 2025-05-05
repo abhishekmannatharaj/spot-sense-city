@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { ParkingSpot, Booking, SafetyAnalysisResult } from '@/types';
 import { toast } from '@/components/ui/sonner';
@@ -28,18 +27,18 @@ export const useParking = () => {
   return context;
 };
 
-// Mock data for parking spots
+// Mock data for parking spots in Bangalore
 const mockParkingSpots: ParkingSpot[] = [
   {
     id: 'spot_1',
     ownerId: 'owner_1',
-    title: 'Secure Indoor Parking - Downtown',
-    description: 'Indoor parking spot in a secure building with 24/7 access and security cameras.',
-    address: '123 Main St, Downtown City',
-    latitude: 37.7749,
-    longitude: -122.4194,
-    hourlyRate: 4.50,
-    dailyRate: 25,
+    title: 'Secure Indoor Parking - Indiranagar',
+    description: 'Indoor parking spot in a secure building with 24/7 access and security cameras in Indiranagar.',
+    address: '100 Feet Road, Indiranagar, Bangalore',
+    latitude: 12.9784,
+    longitude: 77.6408,
+    hourlyRate: 80,
+    dailyRate: 400,
     images: ['https://images.unsplash.com/photo-1470224114660-3f6686c562eb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'],
     safetyScore: 4.8,
     safetyLabels: ['Well-lit', 'Indoor', 'Secured'],
@@ -52,13 +51,13 @@ const mockParkingSpots: ParkingSpot[] = [
   {
     id: 'spot_2',
     ownerId: 'owner_2',
-    title: 'Driveway Parking Near City Center',
-    description: 'Private driveway parking spot in a residential area, 10 min walk to city center.',
-    address: '456 Oak Ave, Midtown',
-    latitude: 37.7850,
-    longitude: -122.4320,
-    hourlyRate: 3,
-    dailyRate: 18,
+    title: 'Driveway Parking Near Koramangala',
+    description: 'Private driveway parking spot in a residential area, 10 min walk to Koramangala Forum Mall.',
+    address: '8th Block, Koramangala, Bangalore',
+    latitude: 12.9352,
+    longitude: 77.6245,
+    hourlyRate: 60,
+    dailyRate: 300,
     images: ['https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'],
     safetyScore: 3.9,
     safetyLabels: ['Residential', 'Outdoor'],
@@ -71,13 +70,13 @@ const mockParkingSpots: ParkingSpot[] = [
   {
     id: 'spot_3',
     ownerId: 'owner_3',
-    title: 'Premium Garage Near Stadium',
-    description: 'Private garage spot perfect for game days, just 5 minutes walk to the stadium.',
-    address: '789 Stadium Way',
-    latitude: 37.7790,
-    longitude: -122.4100,
-    hourlyRate: 7,
-    dailyRate: 40,
+    title: 'Premium Garage Near MG Road',
+    description: 'Private garage spot perfect for city center visits, just 5 minutes walk to MG Road.',
+    address: 'MG Road, Bangalore',
+    latitude: 12.9756,
+    longitude: 77.6016,
+    hourlyRate: 100,
+    dailyRate: 500,
     images: ['https://images.unsplash.com/photo-1486006920555-c77dcf18193c?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'],
     safetyScore: 4.5,
     safetyLabels: ['Well-lit', 'Garage', 'Secured'],
@@ -87,6 +86,44 @@ const mockParkingSpots: ParkingSpot[] = [
     isActive: true,
     createdAt: new Date(),
   },
+  {
+    id: 'spot_4',
+    ownerId: 'owner_4',
+    title: 'Whitefield Tech Park Parking',
+    description: 'Convenient parking near Whitefield tech parks, ideal for daily office commuters.',
+    address: 'ITPL Main Road, Whitefield, Bangalore',
+    latitude: 12.9698,
+    longitude: 77.7500,
+    hourlyRate: 70,
+    dailyRate: 350,
+    images: ['https://images.unsplash.com/photo-1526626607369-4f1c8713a336?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'],
+    safetyScore: 4.2,
+    safetyLabels: ['Well-lit', 'Outdoor', 'Security'],
+    availableFrom: '06:00',
+    availableTo: '22:00',
+    amenities: ['Covered', 'Security Guards'],
+    isActive: true,
+    createdAt: new Date(),
+  },
+  {
+    id: 'spot_5',
+    ownerId: 'owner_5',
+    title: 'HSR Layout Basement Parking',
+    description: 'Secure basement parking in HSR Layout, close to restaurants and shopping centers.',
+    address: 'HSR Layout Sector 2, Bangalore',
+    latitude: 12.9116,
+    longitude: 77.6470,
+    hourlyRate: 65,
+    dailyRate: 320,
+    images: ['https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'],
+    safetyScore: 4.0,
+    safetyLabels: ['Indoor', 'Basement', 'CCTV'],
+    availableFrom: '08:00',
+    availableTo: '23:00',
+    amenities: ['Security Cameras', 'Underground'],
+    isActive: true,
+    createdAt: new Date(),
+  }
 ];
 
 // Mock data for bookings
