@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useParking } from '@/context/ParkingContext';
 import { useAuth } from '@/context/AuthContext';
