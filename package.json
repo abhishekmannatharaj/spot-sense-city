@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-pwa-assets": "pwa-assets-generator --preset minimal public/logo.svg"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -39,11 +40,12 @@
     "@radix-ui/react-toggle": "^1.1.0",
     "@radix-ui/react-toggle-group": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.4",
+    "@react-google-maps/api": "^2.20.6",
     "@tanstack/react-query": "^5.56.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
-    "date-fns": "^4.1.0",
+    "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
@@ -66,9 +68,12 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@types/google.maps": "^3.58.1",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vite-pwa/assets-generator": "^1.0.0",
+    "@vitejs/plugin-react": "^4.4.1",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
@@ -80,6 +85,7 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vite-plugin-pwa": "^1.0.0"
   }
 }
