@@ -1,18 +1,15 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { useParking } from '@/context/ParkingContext';
 import { useAuth } from '@/context/AuthContext';
 import { ParkingSpot, SafetyAnalysisResult } from '@/types';
 import { toast } from '@/components/ui/sonner';
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import ImageUpload from './ImageUpload';
 import SafetyScore from './SafetyScore';
-import LocationPickerMap from './LocationPickerMap';
 
 interface AddParkingSpotFormProps {
   onSuccess: () => void;
@@ -22,6 +19,8 @@ interface FormValues {
   title: string;
   description: string;
   address: string;
+  latitude: string;
+  longitude: string;
   hourlyRate: string;
   dailyRate: string;
   availableFrom: string;
@@ -34,18 +33,14 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
   const { user } = useAuth();
   const [images, setImages] = useState<string[]>([]);
   const [safetyAnalysis, setSafetyAnalysis] = useState<SafetyAnalysisResult | null>(null);
-  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<{
-    latitude: number;
-    longitude: number;
-    address: string;
-  } | null>(null);
   
   const form = useForm<FormValues>({
     defaultValues: {
       title: '',
       description: '',
       address: '',
+      latitude: '',
+      longitude: '',
       hourlyRate: '',
       dailyRate: '',
       availableFrom: '08:00',
@@ -66,12 +61,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
     }
   };
 
-  const handleLocationSelected = (location: { latitude: number; longitude: number; address: string }) => {
-    setSelectedLocation(location);
-    form.setValue('address', location.address);
-    setIsLocationPickerOpen(false);
-  };
-
   const onSubmit = async (values: FormValues) => {
     if (!user) {
       toast.error('You must be logged in to create a parking spot');
@@ -83,11 +72,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
       return;
     }
 
-    if (!selectedLocation) {
-      toast.error('Please select a location on the map');
-      return;
-    }
-
     try {
       // Remove the safetyScore and safetyLabels from the type since they're added after creation
       const newSpot: Omit<ParkingSpot, 'id' | 'safetyScore' | 'safetyLabels' | 'createdAt'> = {
@@ -95,8 +79,8 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
         title: values.title,
         description: values.description,
         address: values.address,
-        latitude: selectedLocation.latitude,
-        longitude: selectedLocation.longitude,
+        latitude: parseFloat(values.latitude),
+        longitude: parseFloat(values.longitude),
         hourlyRate: parseFloat(values.hourlyRate),
         dailyRate: values.dailyRate ? parseFloat(values.dailyRate) : undefined,
         images,
@@ -124,19 +108,16 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="title"
-              rules={{ required: "Title is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="e.g., Secure Indoor Parking Near Indiranagar" 
+                      placeholder="e.g., Secure Indoor Parking Near Downtown" 
                       {...field} 
                       disabled={isLoading}
-                      required
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -144,7 +125,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="description"
-              rules={{ required: "Description is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
@@ -154,10 +134,8 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                       className="min-h-24" 
                       {...field} 
                       disabled={isLoading}
-                      required
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -165,29 +143,16 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="address"
-              rules={{ required: "Location is required" }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input 
-                        placeholder="Select location on map" 
-                        {...field} 
-                        disabled={true}
-                        value={selectedLocation?.address || ''}
-                        required
-                      />
-                    </FormControl>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setIsLocationPickerOpen(true)}
-                    >
-                      {selectedLocation ? 'Change Location' : 'Add Location'}
-                    </Button>
-                  </div>
-                  <FormMessage />
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="123 Main St, City, State" 
+                      {...field} 
+                      disabled={isLoading}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
@@ -195,22 +160,59 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="hourlyRate"
-                rules={{ required: "Hourly rate is required" }}
+                name="latitude"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hourly Rate (₹)</FormLabel>
+                    <FormLabel>Latitude</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="any" 
+                        placeholder="e.g., 37.7749" 
+                        {...field} 
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="longitude"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Longitude</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="any" 
+                        placeholder="e.g., -122.4194" 
+                        {...field} 
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="hourlyRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hourly Rate ($)</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
                         step="0.01" 
-                        placeholder="e.g., 50.00" 
+                        placeholder="e.g., 5.00" 
                         {...field} 
                         disabled={isLoading}
-                        required
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -220,17 +222,16 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                 name="dailyRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Daily Rate (₹, optional)</FormLabel>
+                    <FormLabel>Daily Rate ($, optional)</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
                         step="0.01" 
-                        placeholder="e.g., 300.00" 
+                        placeholder="e.g., 25.00" 
                         {...field} 
                         disabled={isLoading}
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -240,7 +241,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
               <FormField
                 control={form.control}
                 name="availableFrom"
-                rules={{ required: "Available from time is required" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Available From</FormLabel>
@@ -249,10 +249,8 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                         type="time" 
                         {...field} 
                         disabled={isLoading}
-                        required
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -260,7 +258,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
               <FormField
                 control={form.control}
                 name="availableTo"
-                rules={{ required: "Available to time is required" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Available To</FormLabel>
@@ -269,10 +266,8 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                         type="time" 
                         {...field} 
                         disabled={isLoading}
-                        required
                       />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -281,7 +276,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="amenities"
-              rules={{ required: "At least one amenity is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Amenities (comma separated)</FormLabel>
@@ -290,10 +284,8 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                       placeholder="e.g., Security Cameras, Covered, EV Charging" 
                       {...field} 
                       disabled={isLoading}
-                      required
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -316,9 +308,6 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                   <ImageUpload onImageUpload={handleImageUpload} />
                 )}
               </div>
-              {images.length === 0 && (
-                <p className="text-sm text-red-500">At least one image is required</p>
-              )}
             </div>
             
             {/* Display safety analysis if available */}
@@ -333,25 +322,12 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
           <Button 
             type="submit"
             className="w-full"
-            disabled={isLoading || !selectedLocation || images.length === 0}
+            disabled={isLoading}
           >
             {isLoading ? 'Creating...' : 'Create Parking Spot'}
           </Button>
         </form>
       </Form>
-
-      {/* Location Picker Dialog */}
-      <Dialog open={isLocationPickerOpen} onOpenChange={setIsLocationPickerOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Select Location</DialogTitle>
-          </DialogHeader>
-          <LocationPickerMap 
-            onLocationSelected={handleLocationSelected}
-            initialLocation={selectedLocation || undefined}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useParking } from '@/context/ParkingContext';
 import { useAuth } from '@/context/AuthContext';
@@ -77,7 +77,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
             <FormField
               control={form.control}
               name="startDate"
-              rules={{ required: "Start date is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Date</FormLabel>
@@ -86,10 +85,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
                       type="date" 
                       {...field} 
                       disabled={isLoading || isProcessing}
-                      required
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -97,7 +94,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
             <FormField
               control={form.control}
               name="startTime"
-              rules={{ required: "Start time is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Time</FormLabel>
@@ -106,10 +102,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
                       type="time" 
                       {...field} 
                       disabled={isLoading || isProcessing}
-                      required
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -117,7 +111,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
             <FormField
               control={form.control}
               name="endDate"
-              rules={{ required: "End date is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>End Date</FormLabel>
@@ -126,10 +119,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
                       type="date" 
                       {...field} 
                       disabled={isLoading || isProcessing}
-                      required
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -137,7 +128,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
             <FormField
               control={form.control}
               name="endTime"
-              rules={{ required: "End time is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>End Time</FormLabel>
@@ -146,10 +136,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
                       type="time" 
                       {...field} 
                       disabled={isLoading || isProcessing}
-                      required
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -158,11 +146,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ spot, onSuccess, onCancel }) 
           <div className="bg-muted p-3 rounded-md">
             <div className="flex items-center justify-between">
               <span>Rate:</span>
-              <span>₹{spot.hourlyRate.toFixed(2)}/hour</span>
+              <span>${spot.hourlyRate.toFixed(2)}/hour</span>
             </div>
             <div className="flex items-center justify-between font-semibold mt-2">
               <span>Total:</span>
-              <span>₹{isNaN(totalPrice) ? '0.00' : totalPrice.toFixed(2)}</span>
+              <span>${isNaN(totalPrice) ? '0.00' : totalPrice.toFixed(2)}</span>
             </div>
           </div>
           

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useParking } from '@/context/ParkingContext';
 import { Card } from '@/components/ui/card';
@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Drawer } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Navigation, Search } from 'lucide-react';
 import ParkingSpotMarker from '@/components/ParkingSpotMarker';
 import ParkingSpotCard from '@/components/ParkingSpotCard';
 import BookingForm from '@/components/BookingForm';
@@ -22,18 +21,13 @@ const MapPage: React.FC = () => {
   const { parkingSpots, fetchParkingSpots, selectedSpot, selectSpot, isLoading } = useParking();
   const { toast } = useToast();
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const [isSpotDrawerOpen, setIsSpotDrawerOpen] = useState(false);
   const [isBookingDrawerOpen, setIsBookingDrawerOpen] = useState(false);
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
-  const userMarkerRef = useRef<google.maps.Marker | null>(null);
-  const scriptLoadedRef = useRef<boolean>(false);
   
   useEffect(() => {
     fetchParkingSpots();
@@ -45,95 +39,38 @@ const MapPage: React.FC = () => {
     }
   }, [selectedSpot]);
 
-  // Function to load Google Maps script only once
-  const loadGoogleMapsScript = useCallback(() => {
-    if (scriptLoadedRef.current) return Promise.resolve();
-    
-    return new Promise<void>((resolve, reject) => {
-      try {
-        if (window.google && window.google.maps) {
-          scriptLoadedRef.current = true;
-          resolve();
-          return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-        script.defer = true;
-        script.async = true;
-        script.id = 'google-maps-script';
-        
-        script.onload = () => {
-          scriptLoadedRef.current = true;
-          resolve();
-        };
-        
-        script.onerror = (error) => {
-          setMapError('Failed to load Google Maps. Please try again later.');
-          reject(error);
-        };
-        
-        // Only add the script if it doesn't exist already
-        if (!document.getElementById('google-maps-script')) {
-          document.head.appendChild(script);
-        }
-      } catch (error) {
-        setMapError('Error initializing map. Please try again later.');
-        reject(error);
-      }
-    });
-  }, []);
-
-  // Initialize Google Map with better error handling
-  const initializeMap = useCallback(() => {
-    if (!mapRef.current) return;
-    
-    try {
-      const mapOptions = {
-        center: BANGALORE_CENTER,
-        zoom: 13,
-        disableDefaultUI: true,
-        zoomControl: true,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true,
-      };
-
-      const map = new google.maps.Map(mapRef.current, mapOptions);
-      googleMapRef.current = map;
-      setMapLoaded(true);
-      setMapError(null);
-    } catch (error) {
-      console.error('Map initialization error:', error);
-      setMapError('Failed to initialize the map. Please refresh the page.');
-    }
-  }, []);
-
-  // Load script and init map on component mount
+  // Load Google Maps script
   useEffect(() => {
-    loadGoogleMapsScript()
-      .then(() => {
-        initializeMap();
-      })
-      .catch(err => {
-        console.error('Error loading Google Maps:', err);
-        setMapError('Failed to load Google Maps. Please check your connection and try again.');
-      });
-      
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.defer = true;
+    script.async = true;
+    script.onload = initializeMap;
+    document.head.appendChild(script);
+
     return () => {
-      // Clean up markers when component unmounts
-      if (markersRef.current) {
-        markersRef.current.forEach(marker => {
-          marker.setMap(null);
-        });
-        markersRef.current.clear();
-      }
-      
-      if (userMarkerRef.current) {
-        userMarkerRef.current.setMap(null);
-      }
+      document.head.removeChild(script);
     };
-  }, [loadGoogleMapsScript, initializeMap]);
+  }, []);
+
+  // Initialize Google Map
+  const initializeMap = () => {
+    if (!mapRef.current) return;
+
+    const mapOptions = {
+      center: BANGALORE_CENTER,
+      zoom: 13,
+      disableDefaultUI: true,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+    };
+
+    const map = new google.maps.Map(mapRef.current, mapOptions);
+    googleMapRef.current = map;
+    setMapLoaded(true);
+  };
 
   // Add parking spot markers to map
   useEffect(() => {
@@ -147,29 +84,25 @@ const MapPage: React.FC = () => {
     
     // Add new markers
     parkingSpots.forEach((spot) => {
-      try {
-        const marker = new google.maps.Marker({
-          position: { lat: spot.latitude, lng: spot.longitude },
-          map: googleMapRef.current,
-          title: spot.title,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: selectedSpot?.id === spot.id ? '#4f46e5' : '#ef4444',
-            fillOpacity: 0.7,
-            strokeWeight: 2,
-            strokeColor: '#ffffff',
-          }
-        });
-        
-        marker.addListener('click', () => {
-          selectSpot(spot.id);
-        });
-        
-        markersRef.current.set(spot.id, marker);
-      } catch (error) {
-        console.error(`Error adding marker for spot ${spot.id}:`, error);
-      }
+      const marker = new google.maps.Marker({
+        position: { lat: spot.latitude, lng: spot.longitude },
+        map: googleMapRef.current,
+        title: spot.title,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: selectedSpot?.id === spot.id ? '#4f46e5' : '#ef4444',
+          fillOpacity: 0.7,
+          strokeWeight: 2,
+          strokeColor: '#ffffff',
+        }
+      });
+      
+      marker.addListener('click', () => {
+        selectSpot(spot.id);
+      });
+      
+      markersRef.current.set(spot.id, marker);
     });
   }, [parkingSpots, selectedSpot, mapLoaded, selectSpot]);
 
@@ -206,117 +139,9 @@ const MapPage: React.FC = () => {
     }, 1500);
   };
 
-  const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      toast({ 
-        title: "Error", 
-        description: "Geolocation is not supported by your browser",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLocating(true);
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userPos = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        
-        setUserLocation(userPos);
-        
-        // Update map center and zoom
-        if (googleMapRef.current) {
-          googleMapRef.current.setCenter(userPos);
-          googleMapRef.current.setZoom(15);
-          
-          // Clear previous user marker if exists
-          if (userMarkerRef.current) {
-            userMarkerRef.current.setMap(null);
-          }
-          
-          // Add user marker
-          userMarkerRef.current = new google.maps.Marker({
-            position: userPos,
-            map: googleMapRef.current,
-            title: "Your Location",
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 12,
-              fillColor: '#3b82f6', // blue
-              fillOpacity: 1,
-              strokeWeight: 2,
-              strokeColor: '#ffffff',
-            }
-          });
-
-          // Find nearby spots (in a real app, we would make an API call with the user's coordinates)
-          // For this demo, we'll just highlight spots within a certain radius
-          const nearbySpots = findNearbyParkingSpots(userPos, 5); // 5 km radius
-          
-          if (nearbySpots.length > 0) {
-            toast({
-              title: "Success",
-              description: `Found ${nearbySpots.length} parking spots within 5 km of your location`
-            });
-          } else {
-            toast({
-              title: "No Spots Found",
-              description: "No parking spots found near your location. Try another area."
-            });
-          }
-        }
-        
-        setIsLocating(false);
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
-        toast({ 
-          title: "Error", 
-          description: `Could not get your location: ${error.message}`,
-          variant: "destructive"
-        });
-        setIsLocating(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
-  };
-
-  // Function to calculate distance between two points using Haversine formula
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Radius of the Earth in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
-
-  // Function to find parking spots within a certain radius (in km)
-  const findNearbyParkingSpots = (location: {lat: number, lng: number}, radius: number) => {
-    return parkingSpots.filter(spot => {
-      const distance = calculateDistance(
-        location.lat, 
-        location.lng, 
-        spot.latitude, 
-        spot.longitude
-      );
-      return distance <= radius;
-    });
-  };
-
   return (
     <div className="flex flex-col h-screen relative">
-      {/* Search bar and Location button */}
+      {/* Search bar */}
       <div className="absolute top-4 left-0 right-0 z-10 px-4">
         <div className="flex items-center gap-2">
           <Input 
@@ -327,7 +152,6 @@ const MapPage: React.FC = () => {
             onClick={handleSearch} 
             disabled={isSearching}
             className="whitespace-nowrap"
-            variant="default"
           >
             {isSearching ? (
               <>
@@ -335,61 +159,21 @@ const MapPage: React.FC = () => {
                 Searching
               </>
             ) : (
-              <>
-                <Search className="h-4 w-4" />
-                Find Spots
-              </>
-            )}
-          </Button>
-          <Button 
-            onClick={handleLocateMe} 
-            disabled={isLocating}
-            className="whitespace-nowrap"
-            variant="outline"
-            title="Show my location"
-          >
-            {isLocating ? (
-              <>
-                <span className="animate-spin mr-2">⟳</span> 
-                Locating
-              </>
-            ) : (
-              <>
-                <Navigation className="h-4 w-4" />
-                Open Map
-              </>
+              'Find Spots'
             )}
           </Button>
         </div>
       </div>
 
       {/* Google Map */}
-      <div className="h-[50vh] sticky top-0 z-0 shadow-md">
+      <div className="h-[60vh] sticky top-0 z-0 shadow-md">
         <div ref={mapRef} className="w-full h-full"></div>
 
-        {!mapLoaded && !mapError && (
+        {!mapLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nexlot-600 mb-4 mx-auto"></div>
               <p className="text-lg font-semibold">Loading map...</p>
-            </div>
-          </div>
-        )}
-
-        {mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-center p-4">
-              <div className="text-red-500 text-5xl mb-4">⚠️</div>
-              <p className="text-lg font-semibold text-red-600">{mapError}</p>
-              <Button 
-                className="mt-4" 
-                onClick={() => {
-                  setMapError(null);
-                  loadGoogleMapsScript().then(initializeMap);
-                }}
-              >
-                Retry Loading Map
-              </Button>
             </div>
           </div>
         )}
@@ -401,7 +185,7 @@ const MapPage: React.FC = () => {
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center my-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nexlot-600"></div>
             </div>
           ) : parkingSpots.length === 0 ? (
             <p className="text-center text-muted-foreground">No parking spots found nearby</p>
@@ -433,7 +217,7 @@ const MapPage: React.FC = () => {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-                  <p className="text-white font-semibold text-xl">₹{selectedSpot.hourlyRate.toFixed(2)}/hr</p>
+                  <p className="text-white font-semibold text-xl">${selectedSpot.hourlyRate.toFixed(2)}/hr</p>
                 </div>
               </div>
               
@@ -472,7 +256,7 @@ const MapPage: React.FC = () => {
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Daily Rate:</span>
-                    <span>{selectedSpot.dailyRate ? `₹${selectedSpot.dailyRate.toFixed(2)}` : 'N/A'}</span>
+                    <span>{selectedSpot.dailyRate ? `$${selectedSpot.dailyRate.toFixed(2)}` : 'N/A'}</span>
                   </div>
                 </div>
                 

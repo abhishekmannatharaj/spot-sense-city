@@ -10,7 +10,6 @@ declare namespace google {
       panTo(latLng: LatLng | LatLngLiteral): void;
       getCenter(): LatLng;
       getZoom(): number;
-      addListener(eventName: string, handler: Function): MapsEventListener;
     }
 
     class Marker {
@@ -24,55 +23,6 @@ declare namespace google {
       addListener(eventName: string, handler: Function): MapsEventListener;
     }
 
-    class Geocoder {
-      constructor();
-      geocode(request: GeocoderRequest, callback: (results: GeocoderResult[], status: string) => void): void;
-    }
-
-    interface GeocoderRequest {
-      address?: string;
-      location?: LatLng | LatLngLiteral;
-      placeId?: string;
-      bounds?: LatLngBounds | LatLngBoundsLiteral;
-      componentRestrictions?: GeocoderComponentRestrictions;
-      region?: string;
-    }
-
-    interface GeocoderComponentRestrictions {
-      administrativeArea?: string;
-      country?: string | string[];
-      locality?: string;
-      postalCode?: string;
-      route?: string;
-    }
-
-    interface GeocoderResult {
-      address_components: GeocoderAddressComponent[];
-      formatted_address: string;
-      geometry: GeocoderGeometry;
-      partial_match: boolean;
-      place_id: string;
-      plus_code?: {
-        compound_code: string;
-        global_code: string;
-      };
-      postcode_localities?: string[];
-      types: string[];
-    }
-
-    interface GeocoderAddressComponent {
-      long_name: string;
-      short_name: string;
-      types: string[];
-    }
-
-    interface GeocoderGeometry {
-      location: LatLng;
-      location_type: string;
-      viewport: LatLngBounds;
-      bounds?: LatLngBounds;
-    }
-
     interface MarkerOptions {
       position: LatLng | LatLngLiteral;
       map?: Map;
@@ -83,13 +33,7 @@ declare namespace google {
       clickable?: boolean;
       visible?: boolean;
       zIndex?: number;
-      animation?: number;
     }
-
-    const Animation: {
-      DROP: number;
-      BOUNCE: number;
-    };
 
     interface MapOptions {
       center?: LatLng | LatLngLiteral;
@@ -134,35 +78,11 @@ declare namespace google {
       lat(): number;
       lng(): number;
       toString(): string;
-      toJSON(): {lat: number; lng: number};
     }
 
     interface LatLngLiteral {
       lat: number;
       lng: number;
-    }
-
-    class LatLngBounds {
-      constructor(sw?: LatLng | LatLngLiteral, ne?: LatLng | LatLngLiteral);
-      contains(latLng: LatLng | LatLngLiteral): boolean;
-      equals(other: LatLngBounds | LatLngBoundsLiteral): boolean;
-      extend(latLng: LatLng | LatLngLiteral): LatLngBounds;
-      getCenter(): LatLng;
-      getNorthEast(): LatLng;
-      getSouthWest(): LatLng;
-      intersects(other: LatLngBounds | LatLngBoundsLiteral): boolean;
-      isEmpty(): boolean;
-      toJSON(): {north: number; east: number; south: number; west: number};
-      toSpan(): LatLng;
-      toString(): string;
-      union(other: LatLngBounds | LatLngBoundsLiteral): LatLngBounds;
-    }
-
-    interface LatLngBoundsLiteral {
-      east: number;
-      north: number;
-      south: number;
-      west: number;
     }
 
     class Size {
@@ -189,11 +109,6 @@ declare namespace google {
 
     interface MapsEventListener {
       remove(): void;
-    }
-
-    interface MapMouseEvent {
-      latLng?: LatLng;
-      stop(): void;
     }
   }
 }
