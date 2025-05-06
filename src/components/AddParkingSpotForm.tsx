@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { useParking } from '@/context/ParkingContext';
 import { useAuth } from '@/context/AuthContext';
 import { ParkingSpot, SafetyAnalysisResult } from '@/types';
@@ -124,6 +124,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="title"
+              rules={{ required: "Title is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
@@ -132,8 +133,10 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                       placeholder="e.g., Secure Indoor Parking Near Indiranagar" 
                       {...field} 
                       disabled={isLoading}
+                      required
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -141,6 +144,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="description"
+              rules={{ required: "Description is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
@@ -150,8 +154,10 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                       className="min-h-24" 
                       {...field} 
                       disabled={isLoading}
+                      required
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -159,6 +165,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="address"
+              rules={{ required: "Location is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Location</FormLabel>
@@ -169,6 +176,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                         {...field} 
                         disabled={true}
                         value={selectedLocation?.address || ''}
+                        required
                       />
                     </FormControl>
                     <Button 
@@ -179,6 +187,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                       {selectedLocation ? 'Change Location' : 'Add Location'}
                     </Button>
                   </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -187,6 +196,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
               <FormField
                 control={form.control}
                 name="hourlyRate"
+                rules={{ required: "Hourly rate is required" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Hourly Rate (₹)</FormLabel>
@@ -197,8 +207,10 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                         placeholder="e.g., 50.00" 
                         {...field} 
                         disabled={isLoading}
+                        required
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -218,6 +230,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                         disabled={isLoading}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -227,6 +240,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
               <FormField
                 control={form.control}
                 name="availableFrom"
+                rules={{ required: "Available from time is required" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Available From</FormLabel>
@@ -235,8 +249,10 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                         type="time" 
                         {...field} 
                         disabled={isLoading}
+                        required
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -244,6 +260,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
               <FormField
                 control={form.control}
                 name="availableTo"
+                rules={{ required: "Available to time is required" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Available To</FormLabel>
@@ -252,8 +269,10 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                         type="time" 
                         {...field} 
                         disabled={isLoading}
+                        required
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -262,6 +281,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
             <FormField
               control={form.control}
               name="amenities"
+              rules={{ required: "At least one amenity is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Amenities (comma separated)</FormLabel>
@@ -270,8 +290,10 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                       placeholder="e.g., Security Cameras, Covered, EV Charging" 
                       {...field} 
                       disabled={isLoading}
+                      required
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -294,6 +316,9 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
                   <ImageUpload onImageUpload={handleImageUpload} />
                 )}
               </div>
+              {images.length === 0 && (
+                <p className="text-sm text-red-500">At least one image is required</p>
+              )}
             </div>
             
             {/* Display safety analysis if available */}
@@ -308,7 +333,7 @@ const AddParkingSpotForm: React.FC<AddParkingSpotFormProps> = ({ onSuccess }) =>
           <Button 
             type="submit"
             className="w-full"
-            disabled={isLoading || !selectedLocation}
+            disabled={isLoading || !selectedLocation || images.length === 0}
           >
             {isLoading ? 'Creating...' : 'Create Parking Spot'}
           </Button>
