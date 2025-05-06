@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Drawer } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
+import { MapPin, Navigation, Search } from 'lucide-react';
 import ParkingSpotMarker from '@/components/ParkingSpotMarker';
 import ParkingSpotCard from '@/components/ParkingSpotCard';
 import BookingForm from '@/components/BookingForm';
@@ -22,12 +23,15 @@ const MapPage: React.FC = () => {
   const { toast } = useToast();
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [isSpotDrawerOpen, setIsSpotDrawerOpen] = useState(false);
   const [isBookingDrawerOpen, setIsBookingDrawerOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const userMarkerRef = useRef<google.maps.Marker | null>(null);
   
   useEffect(() => {
     fetchParkingSpots();
@@ -139,9 +143,118 @@ const MapPage: React.FC = () => {
     }, 1500);
   };
 
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      toast({ 
+        title: "Error", 
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLocating(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userPos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        
+        setUserLocation(userPos);
+        
+        // Update map center and zoom
+        if (googleMapRef.current) {
+          googleMapRef.current.setCenter(userPos);
+          googleMapRef.current.setZoom(15);
+          
+          // Clear previous user marker if exists
+          if (userMarkerRef.current) {
+            userMarkerRef.current.setMap(null);
+          }
+          
+          // Add user marker
+          userMarkerRef.current = new google.maps.Marker({
+            position: userPos,
+            map: googleMapRef.current,
+            title: "Your Location",
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 12,
+              fillColor: '#3b82f6', // blue
+              fillOpacity: 1,
+              strokeWeight: 2,
+              strokeColor: '#ffffff',
+            },
+            animation: google.maps.Animation.DROP
+          });
+
+          // Find nearby spots (in a real app, we would make an API call with the user's coordinates)
+          // For this demo, we'll just highlight spots within a certain radius
+          const nearbySpots = findNearbyParkingSpots(userPos, 5); // 5 km radius
+          
+          if (nearbySpots.length > 0) {
+            toast({
+              title: "Success",
+              description: `Found ${nearbySpots.length} parking spots within 5 km of your location`
+            });
+          } else {
+            toast({
+              title: "No Spots Found",
+              description: "No parking spots found near your location. Try another area."
+            });
+          }
+        }
+        
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        toast({ 
+          title: "Error", 
+          description: `Could not get your location: ${error.message}`,
+          variant: "destructive"
+        });
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  // Function to calculate distance between two points using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Function to find parking spots within a certain radius (in km)
+  const findNearbyParkingSpots = (location: {lat: number, lng: number}, radius: number) => {
+    return parkingSpots.filter(spot => {
+      const distance = calculateDistance(
+        location.lat, 
+        location.lng, 
+        spot.latitude, 
+        spot.longitude
+      );
+      return distance <= radius;
+    });
+  };
+
   return (
     <div className="flex flex-col h-screen relative">
-      {/* Search bar */}
+      {/* Search bar and Location button */}
       <div className="absolute top-4 left-0 right-0 z-10 px-4">
         <div className="flex items-center gap-2">
           <Input 
@@ -152,6 +265,7 @@ const MapPage: React.FC = () => {
             onClick={handleSearch} 
             disabled={isSearching}
             className="whitespace-nowrap"
+            variant="default"
           >
             {isSearching ? (
               <>
@@ -159,7 +273,29 @@ const MapPage: React.FC = () => {
                 Searching
               </>
             ) : (
-              'Find Spots'
+              <>
+                <Search className="h-4 w-4" />
+                Find Spots
+              </>
+            )}
+          </Button>
+          <Button 
+            onClick={handleLocateMe} 
+            disabled={isLocating}
+            className="whitespace-nowrap"
+            variant="outline"
+            title="Show my location"
+          >
+            {isLocating ? (
+              <>
+                <span className="animate-spin mr-2">⟳</span> 
+                Locating
+              </>
+            ) : (
+              <>
+                <Navigation className="h-4 w-4" />
+                Open Map
+              </>
             )}
           </Button>
         </div>
