@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useParking } from '@/context/ParkingContext';
 import { Card } from '@/components/ui/card';
@@ -22,6 +22,7 @@ const MapPage: React.FC = () => {
   const { parkingSpots, fetchParkingSpots, selectedSpot, selectSpot, isLoading } = useParking();
   const { toast } = useToast();
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isSpotDrawerOpen, setIsSpotDrawerOpen] = useState(false);
@@ -32,6 +33,7 @@ const MapPage: React.FC = () => {
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
+  const scriptLoadedRef = useRef<boolean>(false);
   
   useEffect(() => {
     fetchParkingSpots();
@@ -43,38 +45,95 @@ const MapPage: React.FC = () => {
     }
   }, [selectedSpot]);
 
-  // Load Google Maps script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.defer = true;
-    script.async = true;
-    script.onload = initializeMap;
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
+  // Function to load Google Maps script only once
+  const loadGoogleMapsScript = useCallback(() => {
+    if (scriptLoadedRef.current) return Promise.resolve();
+    
+    return new Promise<void>((resolve, reject) => {
+      try {
+        if (window.google && window.google.maps) {
+          scriptLoadedRef.current = true;
+          resolve();
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+        script.defer = true;
+        script.async = true;
+        script.id = 'google-maps-script';
+        
+        script.onload = () => {
+          scriptLoadedRef.current = true;
+          resolve();
+        };
+        
+        script.onerror = (error) => {
+          setMapError('Failed to load Google Maps. Please try again later.');
+          reject(error);
+        };
+        
+        // Only add the script if it doesn't exist already
+        if (!document.getElementById('google-maps-script')) {
+          document.head.appendChild(script);
+        }
+      } catch (error) {
+        setMapError('Error initializing map. Please try again later.');
+        reject(error);
+      }
+    });
   }, []);
 
-  // Initialize Google Map
-  const initializeMap = () => {
+  // Initialize Google Map with better error handling
+  const initializeMap = useCallback(() => {
     if (!mapRef.current) return;
+    
+    try {
+      const mapOptions = {
+        center: BANGALORE_CENTER,
+        zoom: 13,
+        disableDefaultUI: true,
+        zoomControl: true,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+      };
 
-    const mapOptions = {
-      center: BANGALORE_CENTER,
-      zoom: 13,
-      disableDefaultUI: true,
-      zoomControl: true,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true,
+      const map = new google.maps.Map(mapRef.current, mapOptions);
+      googleMapRef.current = map;
+      setMapLoaded(true);
+      setMapError(null);
+    } catch (error) {
+      console.error('Map initialization error:', error);
+      setMapError('Failed to initialize the map. Please refresh the page.');
+    }
+  }, []);
+
+  // Load script and init map on component mount
+  useEffect(() => {
+    loadGoogleMapsScript()
+      .then(() => {
+        initializeMap();
+      })
+      .catch(err => {
+        console.error('Error loading Google Maps:', err);
+        setMapError('Failed to load Google Maps. Please check your connection and try again.');
+      });
+      
+    return () => {
+      // Clean up markers when component unmounts
+      if (markersRef.current) {
+        markersRef.current.forEach(marker => {
+          marker.setMap(null);
+        });
+        markersRef.current.clear();
+      }
+      
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null);
+      }
     };
-
-    const map = new google.maps.Map(mapRef.current, mapOptions);
-    googleMapRef.current = map;
-    setMapLoaded(true);
-  };
+  }, [loadGoogleMapsScript, initializeMap]);
 
   // Add parking spot markers to map
   useEffect(() => {
@@ -88,25 +147,29 @@ const MapPage: React.FC = () => {
     
     // Add new markers
     parkingSpots.forEach((spot) => {
-      const marker = new google.maps.Marker({
-        position: { lat: spot.latitude, lng: spot.longitude },
-        map: googleMapRef.current,
-        title: spot.title,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: selectedSpot?.id === spot.id ? '#4f46e5' : '#ef4444',
-          fillOpacity: 0.7,
-          strokeWeight: 2,
-          strokeColor: '#ffffff',
-        }
-      });
-      
-      marker.addListener('click', () => {
-        selectSpot(spot.id);
-      });
-      
-      markersRef.current.set(spot.id, marker);
+      try {
+        const marker = new google.maps.Marker({
+          position: { lat: spot.latitude, lng: spot.longitude },
+          map: googleMapRef.current,
+          title: spot.title,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: selectedSpot?.id === spot.id ? '#4f46e5' : '#ef4444',
+            fillOpacity: 0.7,
+            strokeWeight: 2,
+            strokeColor: '#ffffff',
+          }
+        });
+        
+        marker.addListener('click', () => {
+          selectSpot(spot.id);
+        });
+        
+        markersRef.current.set(spot.id, marker);
+      } catch (error) {
+        console.error(`Error adding marker for spot ${spot.id}:`, error);
+      }
     });
   }, [parkingSpots, selectedSpot, mapLoaded, selectSpot]);
 
@@ -186,8 +249,7 @@ const MapPage: React.FC = () => {
               fillOpacity: 1,
               strokeWeight: 2,
               strokeColor: '#ffffff',
-            },
-            animation: google.maps.Animation.DROP
+            }
           });
 
           // Find nearby spots (in a real app, we would make an API call with the user's coordinates)
@@ -305,11 +367,29 @@ const MapPage: React.FC = () => {
       <div className="h-[50vh] sticky top-0 z-0 shadow-md">
         <div ref={mapRef} className="w-full h-full"></div>
 
-        {!mapLoaded && (
+        {!mapLoaded && !mapError && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-nexlot-600 mb-4 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4 mx-auto"></div>
               <p className="text-lg font-semibold">Loading map...</p>
+            </div>
+          </div>
+        )}
+
+        {mapError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div className="text-center p-4">
+              <div className="text-red-500 text-5xl mb-4">⚠️</div>
+              <p className="text-lg font-semibold text-red-600">{mapError}</p>
+              <Button 
+                className="mt-4" 
+                onClick={() => {
+                  setMapError(null);
+                  loadGoogleMapsScript().then(initializeMap);
+                }}
+              >
+                Retry Loading Map
+              </Button>
             </div>
           </div>
         )}
@@ -321,7 +401,7 @@ const MapPage: React.FC = () => {
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center my-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nexlot-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
             </div>
           ) : parkingSpots.length === 0 ? (
             <p className="text-center text-muted-foreground">No parking spots found nearby</p>
